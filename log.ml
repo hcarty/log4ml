@@ -3,7 +3,7 @@ open Batteries
 module type Level_sig = sig
   type t
   val to_string : t -> string
-  val max_level : t
+  val default_level : t
   val compare : t -> t -> int
 end
 
@@ -36,7 +36,7 @@ module Basic = struct
     | `fatal -> 5
     | `always -> 6
 
-  let max_level = `always
+  let default_level = `always
 
   let compare a b =
     Int.compare (to_int a) (to_int b)
@@ -50,7 +50,7 @@ module Make(L : Level_sig) = struct
   let prefix : (L.t -> string) ref = ref (const "")
 
   (** By default, the log level is the largest (most restrictive) *)
-  let level : L.t ref = ref L.max_level
+  let level : L.t ref = ref L.default_level
 
   let default_prefix level =
     let open Unix in

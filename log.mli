@@ -5,8 +5,8 @@ module type Level_sig = sig
   (** [to_string l] returns a string describing or naming the log level [l] *)
   val to_string : t -> string
 
-  (** The maximum/most restrictive available log level *)
-  val max_level : t
+  (** The default log level *)
+  val default_level : t
 
   (** [compare a b] should be [0] if [a] and [b] are equal, [< 0] if [a] is
       less restrictive than [b], and [> 0] if [a] is more restrictive than
@@ -25,7 +25,7 @@ module Basic : sig
     | `always
   ]
   val to_string : t -> string
-  val max_level : t
+  val default_level : t
   val compare : t -> t -> int
 end
 
