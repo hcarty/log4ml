@@ -1,91 +1,104 @@
 open Batteries
 
-type level_t = [
-  | `trace
-  | `debug
-  | `info
-  | `warn
-  | `error
-  | `fatal
-  | `always
-]
+module type Level_sig = sig
+  type t
+  val to_string : t -> string
+  val max_level : t
+  val compare : t -> t -> int
+end
 
-let string_of_level : (level_t -> string) = function
-  | `trace -> "TRACE"
-  | `debug -> "DEBUG"
-  | `info -> "INFO"
-  | `warn -> "WARN"
-  | `error -> "ERROR"
-  | `fatal -> "FATAL"
-  | `always -> "ALWAYS"
+module Basic = struct
+  type t = [
+    | `trace
+    | `debug
+    | `info
+    | `warn
+    | `error
+    | `fatal
+    | `always
+  ]
 
-let int_of_level : (level_t -> int) = function
-  | `trace -> 0
-  | `debug -> 1
-  | `info -> 2
-  | `warn -> 3
-  | `error -> 4
-  | `fatal -> 5
-  | `always -> 6
+  let to_string : (t -> string) = function
+    | `trace -> "TRACE"
+    | `debug -> "DEBUG"
+    | `info -> "INFO"
+    | `warn -> "WARN"
+    | `error -> "ERROR"
+    | `fatal -> "FATAL"
+    | `always -> "ALWAYS"
 
-let compare_level a b =
-  Int.compare (int_of_level a) (int_of_level b)
+  let to_int : (t -> int) = function
+    | `trace -> 0
+    | `debug -> 1
+    | `info -> 2
+    | `warn -> 3
+    | `error -> 4
+    | `fatal -> 5
+    | `always -> 6
 
-(** By default, the logger does nothing *)
-let logger : (level_t -> string -> unit) ref = ref (const ignore)
+  let max_level = `always
 
-(** By default, the prefix string is empty *)
-let prefix : (unit -> string) ref = ref (const "")
+  let compare a b =
+    Int.compare (to_int a) (to_int b)
+end
 
-(** By default, the log level is `always *)
-let level : level_t ref = ref `always
+module Make(L : Level_sig) = struct
+  (** By default, the logger does nothing *)
+  let logger : (L.t -> string -> unit) ref = ref (const ignore)
 
-let default_prefix () =
-  let open Unix in
-  let now = gmtime (time ()) in
-  Printf.sprintf "%d-%02d-%02d %02d:%02d:%02d"
-    (now.tm_year + 1900) (now.tm_mon + 1) now.tm_mday
-    now.tm_hour now.tm_min now.tm_sec
+  (** By default, the prefix string is empty *)
+  let prefix : (L.t -> string) ref = ref (const "")
 
-let default_logger out level message =
-  IO.nwrite out (!prefix ());
-  IO.nwrite out " ";
-  IO.nwrite out (string_of_level level);
-  IO.nwrite out "> ";
-  IO.nwrite out message;
-  IO.nwrite out "\n"
+  (** By default, the log level is the largest (most restrictive) *)
+  let level : L.t ref = ref L.max_level
 
-(** Set a custom logger function *)
-let set_logger f =
-  logger := f
+  let default_prefix level =
+    let open Unix in
+    let now = gmtime (time ()) in
+    Printf.sprintf "%d-%02d-%02d %02d:%02d:%02d %s> "
+      (now.tm_year + 1900) (now.tm_mon + 1) now.tm_mday
+      now.tm_hour now.tm_min now.tm_sec
+      (L.to_string level)
 
-(** Set a custom prefix function *)
-let set_prefix f =
-  prefix := f
+  let default_logger out level message =
+    IO.nwrite out (!prefix level);
+    IO.nwrite out message;
+    IO.nwrite out "\n"
 
-(** Set log level *)
-let set_level l =
-  level := l
+  (** Set a custom logger function *)
+  let set_logger f =
+    logger := f
 
-(** Get current logger function *)
-let get_logger () = !logger
+  (** Set a custom prefix function *)
+  let set_prefix f =
+    prefix := f
 
-(** Get current prefix function *)
-let get_prefix () = !prefix
+  (** Set log level *)
+  let set_level l =
+    level := l
 
-(** Get log level *)
-let get_level () = !level
+  (** Get current logger function *)
+  let get_logger () = !logger
 
-(** Initialize the logging system using the default logger and prefix
-    functions *)
-let init l =
-  set_logger (default_logger stdout);
-  set_prefix default_prefix;
-  set_level l
+  (** Get current prefix function *)
+  let get_prefix () = !prefix
 
-(** Main logging function *)
-let log l m =
-  if compare_level l !level >= 0 then
-    !logger l m
-  else
-    ()
+  (** Get log level *)
+  let get_level () = !level
+
+  (** Initialize the logging system using the default logger and prefix
+      functions *)
+  let init out l =
+    set_logger (default_logger out);
+    set_prefix default_prefix;
+    set_level l
+
+  (** Main logging function *)
+  let log l m =
+    if L.compare l !level >= 0 then
+      !logger l m
+    else
+      ()
+end
+
+module Easy = Make(Basic)
