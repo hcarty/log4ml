@@ -7,42 +7,32 @@ module type Level_sig = sig
   val compare : t -> t -> int
 end
 
-module Basic = struct
-  type t = [
-    | `trace
-    | `debug
-    | `info
-    | `warn
-    | `error
-    | `fatal
-    | `always
-  ]
+module type S = sig
+  type level_t
 
-  let to_string : (t -> string) = function
-    | `trace -> "TRACE"
-    | `debug -> "DEBUG"
-    | `info -> "INFO"
-    | `warn -> "WARN"
-    | `error -> "ERROR"
-    | `fatal -> "FATAL"
-    | `always -> "ALWAYS"
+  val set_logger : (level_t -> string -> unit) -> unit
+  val set_prefix : (level_t -> string) -> unit
+  val set_level : level_t -> unit
+  (** [set_*] set the current functions and levels for the active logger *)
 
-  let to_int : (t -> int) = function
-    | `trace -> 0
-    | `debug -> 1
-    | `info -> 2
-    | `warn -> 3
-    | `error -> 4
-    | `fatal -> 5
-    | `always -> 6
+  val get_logger : unit -> level_t -> string -> unit
+  val get_prefix : unit -> level_t -> string
+  val get_level : unit -> level_t
+  (** [get_*] get the current functions and levels used by the active logger *)
 
-  let default_level = `always
+  (** [init l] (re)sets logging to use the default logging and prefix functions
+      and sets the logging level to [l].  The default prefix is the current
+      time stamp.  The default logger outputs log entries on [stdout]. *)
+  val init : 'a Batteries.IO.output -> level_t -> unit
 
-  let compare a b =
-    Int.compare (to_int a) (to_int b)
+  (** [log l m] logs the message [m] using the current logging function if the
+      current log level is greater than or equal to [l]. *)
+  val log : level_t -> string -> unit
 end
 
 module Make(L : Level_sig) = struct
+  type level_t = L.t
+
   (** By default, the logger does nothing *)
   let logger : (L.t -> string -> unit) ref = ref (const ignore)
 
@@ -99,6 +89,41 @@ module Make(L : Level_sig) = struct
       !logger l m
     else
       ()
+end
+
+module Basic = struct
+  type t = [
+    | `trace
+    | `debug
+    | `info
+    | `warn
+    | `error
+    | `fatal
+    | `always
+  ]
+
+  let to_string : (t -> string) = function
+    | `trace -> "TRACE"
+    | `debug -> "DEBUG"
+    | `info -> "INFO"
+    | `warn -> "WARN"
+    | `error -> "ERROR"
+    | `fatal -> "FATAL"
+    | `always -> "ALWAYS"
+
+  let to_int : (t -> int) = function
+    | `trace -> 0
+    | `debug -> 1
+    | `info -> 2
+    | `warn -> 3
+    | `error -> 4
+    | `fatal -> 5
+    | `always -> 6
+
+  let default_level = `always
+
+  let compare a b =
+    Int.compare (to_int a) (to_int b)
 end
 
 module Easy = Make(Basic)

@@ -1,3 +1,4 @@
+(** Signature required to implement a logging module *)
 module type Level_sig = sig
   type t
   (** Possible debug levels *)
@@ -14,6 +15,34 @@ module type Level_sig = sig
   val compare : t -> t -> int
 end
 
+(** Signature of a logging module *)
+module type S = sig
+  type level_t
+
+  val set_logger : (level_t -> string -> unit) -> unit
+  val set_prefix : (level_t -> string) -> unit
+  val set_level : level_t -> unit
+  (** [set_*] set the current functions and levels for the active logger *)
+
+  val get_logger : unit -> level_t -> string -> unit
+  val get_prefix : unit -> level_t -> string
+  val get_level : unit -> level_t
+  (** [get_*] get the current functions and levels used by the active logger *)
+
+  (** [init l] (re)sets logging to use the default logging and prefix functions
+      and sets the logging level to [l].  The default prefix is the current
+      date/time stamp.  The default logger outputs log entries on [stdout]. *)
+  val init : 'a Batteries.IO.output -> level_t -> unit
+
+  (** [log l m] logs the message [m] using the current logging function if the
+      current log level is greater than or equal to [l]. *)
+  val log : level_t -> string -> unit
+end
+
+(** A functor to create a logging module using the log levels defined in [L] *)
+module Make : functor (L : Level_sig) -> S with type level_t = L.t
+
+(** A basic logging level structure *)
 module Basic : sig
   type t = [
     | `trace
@@ -29,25 +58,5 @@ module Basic : sig
   val compare : t -> t -> int
 end
 
-module Make : functor (L : Level_sig) -> sig
-  val set_logger : (L.t -> string -> unit) -> unit
-  val set_prefix : (L.t -> string) -> unit
-  val set_level : L.t -> unit
-  (** [set_*] set the current functions and levels for the active logger *)
-
-  val get_logger : unit -> L.t -> string -> unit
-  val get_prefix : unit -> L.t -> string
-  val get_level : unit -> L.t
-  (** [get_*] get the current functions and levels used by the active logger *)
-
-  (** [init l] (re)sets logging to use the default logging and prefix functions
-      and sets the logging level to [l].  The default prefix is the current
-      time stamp.  The default logger outputs log entries on [stdout]. *)
-  val init : 'a Batteries.IO.output -> L.t -> unit
-
-  (** [log l m] logs the message [m] using the current logging function if the
-      current log level is greater than or equal to [l]. *)
-  val log : L.t -> string -> unit
-end
-
-module Easy : module type of Make(Basic)
+(** Logging module using the {!Basic} log levels *)
+module Easy : S with type level_t = Basic.t
