@@ -37,6 +37,10 @@ module type S = sig
   (** [log l m] logs the message [m] using the current logging function if the
       current log level is greater than or equal to [l]. *)
   val log : level_t -> string -> unit
+
+  (** [logf l format] logs the message [m] using the current logging function
+      if the current log level is greater than or equal to [l]. *)
+  val logf : level_t -> ('a, 'b Batteries.IO.output, unit, unit) format4 -> 'a
 end
 
 (** A functor to create a logging module using the log levels defined in [L] *)

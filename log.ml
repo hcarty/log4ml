@@ -28,6 +28,8 @@ module type S = sig
   (** [log l m] logs the message [m] using the current logging function if the
       current log level is greater than or equal to [l]. *)
   val log : level_t -> string -> unit
+
+  val logf : level_t -> ('a, 'b Batteries.IO.output, unit, unit) format4 -> 'a
 end
 
 module Make(L : Level_sig) = struct
@@ -89,6 +91,13 @@ module Make(L : Level_sig) = struct
       !logger l m
     else
       ()
+
+  (** Main logging function - printf-style *)
+  let logf l format =
+    if L.compare l !level >= 0 then
+      Printf.ksprintf2 (fun s -> !logger l s) format
+    else
+      Printf.ksprintf2 ignore format
 end
 
 module Basic = struct
