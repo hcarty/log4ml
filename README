@@ -4,5 +4,5 @@ Build:
 
 To install:
 
-    to be written
+    ocamlfind install log4ml _build/log4ml.cma _build/log4ml.cmxa log4ml.mli META
 
