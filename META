@@ -1,0 +1,7 @@
+# Simple logging
+requires = "batteries"
+description = "Log4ml logging library"
+version = "0.1"
+archive(byte) = "log4ml.cma"
+archive(native) = "log4ml.cmxa"
+
