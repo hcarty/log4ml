@@ -1,0 +1,8 @@
+Build:
+
+    ocamlbuild -use-ocamlfind -pkg batteries log4ml.cma log4ml.cmxa test.native
+
+To install:
+
+    to be written
+
