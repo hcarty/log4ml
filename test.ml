@@ -1,5 +1,5 @@
 open Batteries
-module E = Log.Easy
+module E = Log4ml.Easy
 
 let () =
   let oc = IO.output_string () in
