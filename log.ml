@@ -13,17 +13,19 @@ module type S = sig
   val set_logger : (level_t -> string -> unit) -> unit
   val set_prefix : (level_t -> string) -> unit
   val set_level : level_t -> unit
+  val set_flush : bool -> unit
   (** [set_*] set the current functions and levels for the active logger *)
 
   val get_logger : unit -> level_t -> string -> unit
   val get_prefix : unit -> level_t -> string
   val get_level : unit -> level_t
+  val get_flush : unit -> bool
   (** [get_*] get the current functions and levels used by the active logger *)
 
   (** [init l] (re)sets logging to use the default logging and prefix functions
       and sets the logging level to [l].  The default prefix is the current
       time stamp.  The default logger outputs log entries on [stdout]. *)
-  val init : 'a Batteries.IO.output -> level_t -> unit
+  val init : ?flush:bool -> 'a Batteries.IO.output -> level_t -> unit
 
   (** [log l m] logs the message [m] using the current logging function if the
       current log level is greater than or equal to [l]. *)
@@ -44,6 +46,9 @@ module Make(L : Level_sig) = struct
   (** By default, the log level is the largest (most restrictive) *)
   let level : L.t ref = ref L.default_level
 
+  (** By default, output is flushed after every log message *)
+  let flush = ref true
+
   let default_prefix level =
     let open Unix in
     let now = gmtime (time ()) in
@@ -55,7 +60,9 @@ module Make(L : Level_sig) = struct
   let default_logger out level message =
     IO.nwrite out (!prefix level);
     IO.nwrite out message;
-    IO.nwrite out "\n"
+    IO.nwrite out "\n";
+    if !flush then IO.flush out
+    else ()
 
   (** Set a custom logger function *)
   let set_logger f =
@@ -69,6 +76,10 @@ module Make(L : Level_sig) = struct
   let set_level l =
     level := l
 
+  (** Set output flush flag *)
+  let set_flush b =
+    flush := b
+
   (** Get current logger function *)
   let get_logger () = !logger
 
@@ -78,9 +89,13 @@ module Make(L : Level_sig) = struct
   (** Get log level *)
   let get_level () = !level
 
+  (** Get flush flag *)
+  let get_flush () = !flush
+
   (** Initialize the logging system using the default logger and prefix
       functions *)
-  let init out l =
+  let init ?flush out l =
+    Option.may set_flush flush;
     set_logger (default_logger out);
     set_prefix default_prefix;
     set_level l
@@ -97,7 +112,7 @@ module Make(L : Level_sig) = struct
     if L.compare l !level >= 0 then
       Printf.ksprintf2 (fun s -> !logger l s) format
     else
-      Printf.ksprintf2 ignore format
+      Printf.ifprintf () format
 end
 
 module Basic = struct
@@ -136,3 +151,4 @@ module Basic = struct
 end
 
 module Easy = Make(Basic)
+

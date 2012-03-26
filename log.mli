@@ -1,3 +1,5 @@
+(** {2 Logging} *)
+
 (** Signature required to implement a logging module *)
 module type Level_sig = sig
   type t
@@ -22,17 +24,19 @@ module type S = sig
   val set_logger : (level_t -> string -> unit) -> unit
   val set_prefix : (level_t -> string) -> unit
   val set_level : level_t -> unit
+  val set_flush : bool -> unit
   (** [set_*] set the current functions and levels for the active logger *)
 
   val get_logger : unit -> level_t -> string -> unit
   val get_prefix : unit -> level_t -> string
   val get_level : unit -> level_t
+  val get_flush : unit -> bool
   (** [get_*] get the current functions and levels used by the active logger *)
 
   (** [init l] (re)sets logging to use the default logging and prefix functions
       and sets the logging level to [l].  The default prefix is the current
       date/time stamp.  The default logger outputs log entries on [stdout]. *)
-  val init : 'a Batteries.IO.output -> level_t -> unit
+  val init : ?flush:bool -> 'a Batteries.IO.output -> level_t -> unit
 
   (** [log l m] logs the message [m] using the current logging function if the
       current log level is greater than or equal to [l]. *)
@@ -64,3 +68,4 @@ end
 
 (** Logging module using the {!Basic} log levels *)
 module Easy : S with type level_t = Basic.t
+
